@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>WiFi Configuration</title>
+  <script>
+    function scanWifi() {
+      fetch('/scan')
+        .then(response => response.json())
+        .then(data => {
+          let list = document.getElementById('wifiList');
+          list.innerHTML = '';
+          data.forEach(network => {
+            let item = document.createElement('li');
+            item.textContent = `SSID: ${network.ssid}, RSSI: ${network.rssi}`;
+            list.appendChild(item);
+          });
+        });
+    }
+
+    function setWifi() {
+      const ssid = document.getElementById('ssid').value;
+      const password = document.getElementById('password').value;
+
+      fetch('/api/setWifi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `ssid=${encodeURIComponent(ssid)}&password=${encodeURIComponent(password)}`
+      })
+      .then(response => response.text())
+      .then(data => {
+        alert(data);
+      });
+    }
+
+    function setData() {
+      const hfApi = document.getElementById('hfApi').value;
+      const msnApi = document.getElementById('msnApi').value;
+      const location = document.getElementById('location').value;
+
+      fetch('/api/setData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `hfApi=${encodeURIComponent(hfApi)}&msnApi=${encodeURIComponent(msnApi)}&location=${encodeURIComponent(location)}`
+      })
+      .then(response => response.text())
+      .then(data => {
+        alert(data);
+      });
+    }
+  </script>
+</head>
+<body>
+  <h1>WiFi Configuration</h1>
+  <div>
+    <h2>Set WiFi</h2>
+    <label for="ssid">wifi名:</label>
+    <input type="text" id="ssid" name="ssid">
+    <label for="password">密码:</label>
+    <input type="password" id="password" name="password">
+    <button onclick="setWifi()">Set WiFi</button>
+  </div>
+  <div>
+    <h2>设置数据</h2>
+    <label for="hfApi">和风天气API:</label>
+    <input type="text" id="hfApi" name="hfApi">
+    <label for="msnApi">MSN天气APIKey:</label>
+    <input type="text" id="msnApi" name="msnApi">
+    <label for="location">地点(你地点的拼音就好):</label>
+    <input type="text" id="location" name="location">
+    <button onclick="setData()">Set Data</button>
+  </div>
+  <div>
+    <h2>Available WiFi Networks</h2>
+    <button onclick="scanWifi()">Scan</button>
+    <ul id="wifiList"></ul>
+  </div>
+</body>
+</html>
