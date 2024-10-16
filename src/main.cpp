@@ -13,6 +13,7 @@
 #include "utils/webserver.h"
 #include "utils/siq.h"
 #include "utils/adc.h"
+#include "utils/setting-epd.h"
 #include <Preferences.h>
 #include <DNSServer.h>
 #include <SPIFFS.h>
@@ -42,8 +43,11 @@ RTC_DATA_ATTR int lastEncoderValue = 0;
 RTC_DATA_ATTR int updateTime = 0;
 RTC_DATA_ATTR unsigned long lastWeatherUpdate = 0; 
 RTC_DATA_ATTR unsigned long wakeTime = 0;
-RTC_DATA_ATTR int mode = 0; 
+RTC_DATA_ATTR int mode = 0; //0:正常 1:无网络连接 2:未配置api 
+RTC_DATA_ATTR int linex = -1; 
 RTC_DATA_ATTR int wakeupReason = 0; // 0: 未知, 1: 波轮, 2: 定时
+bool setting = false;
+unsigned long lastTimesUpdate = 0;
 
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 Weather weather;
@@ -101,21 +105,29 @@ void setup() {
     initSht();
     initAdc();
     siqInit();
-
-    if (updateTime >= 6 || updateTime == 0) {
+    
+    if (wakeupReason == 1) {
+        setting_epd(); // 波轮强制唤醒进入设置模式
+        pointer_epd(0);
+        setting = true;
+    } else if (updateTime >= 6 || updateTime == 0) {
+        start_epd();
+        startText_epd("网络连接中...");
         if (connectToWiFi()) {
             mode = 0;
         } else {
-            mode = 1; //mode 1无网络连接 
+            mode = 1; // mode 1无网络连接 
         }
         delay(100);
+        startText_epd("API数据获取中...");
         weather = getWeatherAll();
         updateTime = 1;
         writeWeather(&weather);
+        startText_epd("启动中...");
+        delay(100);
         insights_epd2(&weather);
     } else {
         updateTime++;
-        if(wakeupReason == 1){updateTime--;} // 如果是波轮强制唤醒不增加updateTime
         displayIndex = (displayIndex + 1) % 3;
         delay(100);
         weather = readWeather();
@@ -136,38 +148,89 @@ void setup() {
 
 void loop() {
     unsigned long currentTime = millis();
+    
+    // AP模式下进入设置界面
+    if (currentTime - wakeTime >= WAKE_DURATION && (mode == 1 || mode == 2) && !setting) {
+        if (encoderValue != lastEncoderValue) {
+            setting_epd(); 
+            pointer_epd(0);
+            setting = true;
+        }
+    }
+    
+    // 编码器值变化处理
     if (encoderValue != lastEncoderValue) {
         Serial.print("编码器值: ");
         Serial.println(encoderValue);
-        if(encoderValue <= -60 && mode == 0){
-            mode = 1;
-            openAP();
-            initWebServer();
+        linex = (linex + 1) % 6;
+        if(setting){
+            pointer_epd(linex);
         }
-        if(encoderValue >= 60 ){
-            mode = 0;
-            updateTime = 0;
-            ESP.restart();
-        }
-        wakeTime = millis();
+    
         displayIndex = (displayIndex + 1) % 3;
         if (mode == 1  || mode == 2) {
             displayIndex = 2;
         }
-        updateDisplay();
         lastEncoderValue = encoderValue;
+        if(!setting){
+            updateDisplay();
+        }
+        currentTime = millis();
+        wakeTime = millis();
     }
-
-    if (currentTime - wakeTime >= WAKE_DURATION && mode == 0) {
-        esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
-        esp_deep_sleep_start();
+    
+    Serial.println(currentTime - wakeTime);
+    
+    // 每2秒更新一次times_epd
+    if (currentTime - lastTimesUpdate >= 2000 && setting) {
+        times_epd((currentTime - wakeTime) / 1000);
+        lastTimesUpdate = currentTime;
     }
-
+    
+    // 处理WAKE_DURATION超时
+    if (currentTime - wakeTime >= WAKE_DURATION) {
+        if (setting) {
+            weather = readWeather();
+            switch (linex) {
+                case 0:
+                    weather_epd(&weather);
+                    setting = false;
+                    break;
+                case 1:
+                    insights_epd(&weather);
+                    setting = false;
+                    break;
+                case 2:
+                    insights_epd2(&weather);
+                    setting = false;
+                    break;
+                case 3:
+                    insights_epd2(&weather);
+                    setting = false;
+                    break;
+                case 4:
+                    mode = 1;
+                    openAP();
+                    initWebServer();
+                    insights_epd2(&weather);
+                    setting = false;
+                    break;
+                case 5:
+                    ESP.restart();
+                    break;
+            }
+        }
+        
+        if (mode == 0) { // 非AP模式下进入睡眠状态
+            esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+            esp_deep_sleep_start();
+        }
+    }
+    
+    // AP模式下更新温湿度
     if (currentTime - wakeTime >= AP_UPDATE_INTERVAL && (mode == 1 || mode == 2)) {
         updateSHT();
     }
-
+    
     delay(100);
 }
-
-
