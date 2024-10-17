@@ -44,5 +44,6 @@ float batteryLevel(){
     Serial.print("Battery Level: ");
     if (battery_level < 100)    Serial.print(battery_level);
     else                        Serial.print(100.0f); 
+    digitalWrite(ADC_EN, 1);
     return battery_level;
 }

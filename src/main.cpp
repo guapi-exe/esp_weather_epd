@@ -7,6 +7,7 @@
 #include <Adafruit_SHT4x.h>
 #include "utils/sht.h"
 #include "utils/weather-epd.h"
+#include "utils/deta-epd.h"
 #include "utils/wifi.h"
 #include "utils/weather.h"
 #include "utils/ap.h"
@@ -70,6 +71,9 @@ void updateDisplay() {
         case 2:
             insights_epd2(&weather);
             break;
+        case 3:
+            deta_epd(&weather);
+            break;
     }
 }
 
@@ -105,6 +109,8 @@ void setup() {
     initSht();
     initAdc();
     siqInit();
+
+    //
     
     if (wakeupReason == 1) {
         setting_epd(); // 波轮强制唤醒进入设置模式
@@ -128,7 +134,7 @@ void setup() {
         insights_epd2(&weather);
     } else {
         updateTime++;
-        displayIndex = (displayIndex + 1) % 3;
+        displayIndex = (displayIndex + 1) % 4;
         delay(100);
         weather = readWeather();
         if (mode == 1 || mode == 2) {
@@ -144,9 +150,13 @@ void setup() {
 
     esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 0); 
     wakeTime = millis();
+
+     
+    
 }
 
 void loop() {
+    
     unsigned long currentTime = millis();
     
     // AP模式下进入设置界面
@@ -167,7 +177,7 @@ void loop() {
             pointer_epd(linex);
         }
     
-        displayIndex = (displayIndex + 1) % 3;
+        displayIndex = (displayIndex + 1) % 4;
         if (mode == 1  || mode == 2) {
             displayIndex = 2;
         }
@@ -205,7 +215,7 @@ void loop() {
                     setting = false;
                     break;
                 case 3:
-                    insights_epd2(&weather);
+                    deta_epd(&weather);
                     setting = false;
                     break;
                 case 4:
