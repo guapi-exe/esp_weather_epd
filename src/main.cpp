@@ -20,6 +20,8 @@
 #include <SPIFFS.h>
 #include <Arduino.h>
 #include <esp_sleep.h>
+#include <cmath>
+
 
 #define GxEPD2_DISPLAY_CLASS GxEPD2_BW
 #define GxEPD2_BW_IS_GxEPD2_BW true
@@ -57,6 +59,7 @@ DNSServer dnsServer;
 Adafruit_SHT4x sht4;
 
 const unsigned long SLEEP_DURATION = 600 * 1000 * 1000; // 10分钟轮换ui
+const unsigned long AP_SLEEP = 600 * 1000 * 1000; // 10分钟轮换ui
 const unsigned long WAKE_DURATION = 10 * 1000; // 10秒睡眠醒来后的延迟
 const unsigned long AP_UPDATE_INTERVAL = 5 * 60 * 1000; // 5分钟 AP模式下温湿度更新延迟
 
@@ -172,7 +175,9 @@ void loop() {
     if (encoderValue != lastEncoderValue) {
         Serial.print("编码器值: ");
         Serial.println(encoderValue);
-        linex = (linex + 1) % 6;
+        if(encoderValue > lastEncoderValue){linex = abs((linex + 1)) % 6;}
+        else{linex = abs((linex - 1)) % 6;}
+        
         if(setting){
             pointer_epd(linex);
         }
@@ -198,25 +203,33 @@ void loop() {
     }
     
     // 处理WAKE_DURATION超时
-    if (currentTime - wakeTime >= WAKE_DURATION) {
+    if (currentTime - wakeTime >= WAKE_DURATION || buttonPressed) {
         if (setting) {
             weather = readWeather();
             switch (linex) {
                 case 0:
                     weather_epd(&weather);
                     setting = false;
+                    currentTime = millis();
+                    wakeTime = millis();
                     break;
                 case 1:
                     insights_epd(&weather);
                     setting = false;
+                    currentTime = millis();
+                    wakeTime = millis();
                     break;
                 case 2:
                     insights_epd2(&weather);
                     setting = false;
+                    currentTime = millis();
+                    wakeTime = millis();
                     break;
                 case 3:
                     deta_epd(&weather);
                     setting = false;
+                    currentTime = millis();
+                    wakeTime = millis();
                     break;
                 case 4:
                     mode = 1;
@@ -231,15 +244,16 @@ void loop() {
             }
         }
         
-        if (mode == 0) { // 非AP模式下进入睡眠状态
+        if (currentTime - wakeTime >= WAKE_DURATION && mode == 0) { // 非AP模式下进入睡眠状态
             esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
             esp_deep_sleep_start();
         }
     }
     
-    // AP模式下更新温湿度
-    if (currentTime - wakeTime >= AP_UPDATE_INTERVAL && (mode == 1 || mode == 2)) {
-        updateSHT();
+    // AP模式下休眠
+    if (currentTime - wakeTime >= AP_SLEEP && (mode == 1 || mode == 2)) {
+        esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+        esp_deep_sleep_start();
     }
     
     delay(100);

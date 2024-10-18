@@ -86,7 +86,7 @@ struct Weather {
 };
 
 extern Weather weather;
-constexpr char APIKEY[] = "49c460fe75c14629a4e2ada12626fbaa";
+constexpr char APIKEY[] = "err";
 constexpr char LOCA[] = "beijin";
 
 extern Preferences preferences;

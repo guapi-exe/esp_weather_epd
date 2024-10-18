@@ -7,25 +7,25 @@
 #include "Bitmap.cpp"
 #include "weather.h"
  
-int weekday(int y, int m, int d){//年 月 日
-	if(m==1){
-		y=y-1;
-		m=13;
-	}else if(m==2){
-		y=y-1;
-		m=14;
-	}
-    int week = (d+2*m+3*(m+1)/5+y+y/4-y/100+y/400)%7;
-    return week;
+int weekday(int y, int m, int d) {
+    if (m < 3) {
+        m += 12;
+        y -= 1;
+    }
+    int k = y % 100;
+    int j = y / 100;
+    int week = (d + 13 * (m + 1) / 5 + k + k / 4 + j / 4 + 5 * j) % 7;
+    return (week + 5) % 7; 
 }
+
+
 
 void deta_epd(const Weather* weather){
     std::string obsTimeStr(weather->obsTime.c_str());
     int year = std::stoi(obsTimeStr.substr(0, 4));
     int month = std::stoi(obsTimeStr.substr(5, 2));
     int day = std::stoi(obsTimeStr.substr(8, 2));
-    int week = weekday(year, month, day);
-    int week1 = weekday(year, month, 1);
+    int week = weekday(year, month, 1);
     int maxday = 30;
     if((year % 4 == 0 && month == 2)|| (year%400 == 0 && month == 2)){
         maxday = 29;
@@ -37,7 +37,6 @@ void deta_epd(const Weather* weather){
         maxday = 30;
     }
     Serial.print(maxday);
-    Serial.print(week1);
     Serial.print(week);
     Serial.print(day);
     Serial.print(month);

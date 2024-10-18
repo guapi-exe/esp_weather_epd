@@ -317,7 +317,7 @@ void getWeatherDataNew(const WeatherConfig* config) {
         WiFiClientSecure client;
         client.setInsecure(); 
         HTTPClient http;
-        String url = "https://api.msn.cn/weather/overview?apikey=j5i4gDqHL6nGYwx5wi5kRhXjtf2c5qgFX9fzfk0TOo&ocid=msftweather&cm=zh-cn&it=edgeid&scn=APP_ANON&wrapodata=false&includemapsmetadata=true&cuthour=true&lifeDays=2&lifeModes=18&includestorm=true&includeLifeActivity=true&lifeSubTypes=1%2C3%2C4%2C10%2C26&insights=65536&distanceinkm=0&regionDataCount=20&orderby=distance&days=3&pageOcid=prime-weather%3A%3Aweathertoday-peregrine&source=weather_csr&region=cn&market=zh-cn&locale=zh-cn&lat="+config->lat+"&lon=" + config->lon;
+        String url = "https://api.msn.cn/weather/overview?apikey="+config->mscApiKey+"&ocid=msftweather&cm=zh-cn&it=edgeid&scn=APP_ANON&wrapodata=false&includemapsmetadata=true&cuthour=true&lifeDays=2&lifeModes=18&includestorm=true&includeLifeActivity=true&lifeSubTypes=1%2C3%2C4%2C10%2C26&insights=65536&distanceinkm=0&regionDataCount=20&orderby=distance&days=3&pageOcid=prime-weather%3A%3Aweathertoday-peregrine&source=weather_csr&region=cn&market=zh-cn&locale=zh-cn&lat="+config->lat+"&lon=" + config->lon;
         http.begin(url);
         http.setTimeout(10000); 
         int httpCode = http.GET();
