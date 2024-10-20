@@ -58,10 +58,10 @@ Preferences preferences;
 DNSServer dnsServer;
 Adafruit_SHT4x sht4;
 
-const unsigned long SLEEP_DURATION = 600 * 1000 * 1000; // 10分钟轮换ui
-const unsigned long AP_SLEEP = 600 * 1000 * 1000; // 10分钟轮换ui
-const unsigned long WAKE_DURATION = 10 * 1000; // 10秒睡眠醒来后的延迟
-const unsigned long AP_UPDATE_INTERVAL = 5 * 60 * 1000; // 5分钟 AP模式下温湿度更新延迟
+const unsigned long SLEEP_DURATION = 600 * 1000 * 1000; // 10分钟轮换ui us
+const unsigned long AP_SLEEP = 600 * 1000; // 10分钟 ms
+const unsigned long WAKE_DURATION = 10 * 1000; // 10秒睡眠醒来后的延迟 ms
+const unsigned long AP_UPDATE_INTERVAL = 5 * 60 * 1000; // 5分钟 AP模式下温湿度更新延迟 ms
 
 void updateDisplay() {
     switch (displayIndex) {
@@ -113,8 +113,6 @@ void setup() {
     initAdc();
     siqInit();
 
-    //
-    
     if (wakeupReason == 1) {
         setting_epd(); // 波轮强制唤醒进入设置模式
         pointer_epd(0);
@@ -252,7 +250,7 @@ void loop() {
     
     // AP模式下休眠
     if (currentTime - wakeTime >= AP_SLEEP && (mode == 1 || mode == 2)) {
-        esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+        //esp_sleep_enable_timer_wakeup(SLEEP_DURATION);//AP模式下不自动唤醒
         esp_deep_sleep_start();
     }
     
